@@ -2,8 +2,12 @@
     "assignment_name": "Assignment 1",
     "contributors": [
         {
-            "name": "Jordan Matelsky",
-            "pennkey": "matelsky"
+            "name": "Edward Li",
+            "pennkey": "edli2000"
+        },
+        {
+            "name": "Xincheng Zhu",
+            "pennkey": "kyriezxc"
         }
     ],
     "sources": [
