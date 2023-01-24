@@ -11,7 +11,7 @@ class LinearRegression:
 
     def fit(self, X, y):
         n = X.shape[0]
-        X = np.append(X, np.ones((n, 1)), axis = 1) # Append column for bias
+        X = np.append(X, np.ones((n, 1)), axis=1)  # Append column for bias
         y = y.reshape(n, 1)
         self.theta = np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y))
 
@@ -33,7 +33,7 @@ class GradientDescentLinearRegression(LinearRegression):
         self.b = 0
         self.n = len(X)
         for i in range(epochs):
-            y_pred = self.m * X +self.b
+            y_pred = self.m * X + self.b
             dm = (-2 / self.n) * sum(X * (y - y_pred))
             db = (-1 / self.n) * sum(y - y_pred)
             self.m = self.m - dm * lr
