@@ -29,8 +29,6 @@ class LinearRegression:
         X = np.append(X, np.ones((n, 1)), axis=1)  # Append column for bias
         y = y.reshape(n, 1)
         self.theta = np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y))
-        w = self.theta[:, :-1]
-        b = self.theta[:, -1]
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
