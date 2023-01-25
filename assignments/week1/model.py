@@ -3,7 +3,7 @@ import numpy as np
 
 class LinearRegression:
     """
-    A linear regression model that uses a closed form solution to fit the model. 
+    A linear regression model that uses a closed form solution to fit the model.
     """
 
     w: np.ndarray
