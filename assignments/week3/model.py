@@ -32,8 +32,7 @@ class MLP(torch.nn.Module):
         self.activation = activation()
         self.initializer = initializer
         self.linear1 = torch.nn.Linear(input_size, hidden_size)
-        self.linear2 = torch.nn.Linear(hidden_size, hidden_size)
-        self.linear3 = torch.nn.Linear(hidden_size, num_classes)
+        self.linear2 = torch.nn.Linear(hidden_size, num_classes)
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         """
@@ -47,5 +46,4 @@ class MLP(torch.nn.Module):
         """
         x = x.view(-1, self.input_size)
         x = self.activation(self.linear1(x))
-        x = self.activation(self.linear2(x))
-        return torch.nn.functional.log_softmax(self.linear3(x), dim=1)
+        return torch.nn.functional.log_softmax(self.linear2(x), dim=1)
