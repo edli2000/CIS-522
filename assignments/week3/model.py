@@ -1,7 +1,13 @@
 from typing import Callable
+import torch
+import torch.nn.functional as F
 
 
-class MLP:
+class MLP(torch.nn.Module):
+    """
+    This class implements a multi layer perceptron (MLP)
+    """
+
     def __init__(
         self,
         input_size: int,
@@ -21,9 +27,15 @@ class MLP:
             activation: The activation function to use in the hidden layer.
             initializer: The initializer to use for the weights.
         """
-        ...
+        super(MLP, self).__init__()
+        self.input_size = input_size
+        self.hidden_count = hidden_count
+        self.activation = activation
+        self.initializer = initializer
+        self.linear1 = torch.nn.Linear(input_size, hidden_size)
+        self.linear2 = torch.nn.Linear(hidden_size, num_classes)
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> torch.tensor:
         """
         Forward pass of the network.
 
@@ -33,4 +45,6 @@ class MLP:
         Returns:
             The output of the network.
         """
-        ...
+        x = x.view(-1, self.input_size)
+        x = self.linear1(x)
+        return F.log_softmax(self.linear2(x), dim=1)
