@@ -45,5 +45,5 @@ class MLP(torch.nn.Module):
             The output of the network.
         """
         x = x.view(-1, self.input_size)
-        x = self.linear1(x)
+        x = self.activation(self.linear1(x))
         return torch.nn.functional.log_softmax(self.linear2(x), dim=1)
