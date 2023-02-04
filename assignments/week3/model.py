@@ -1,6 +1,5 @@
 import torch
 from typing import Callable
-import torch
 
 
 class MLP(torch.nn.Module):
