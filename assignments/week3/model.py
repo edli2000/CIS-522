@@ -1,6 +1,5 @@
 from typing import Callable
 import torch
-import torch.nn.functional as F
 
 
 class MLP(torch.nn.Module):
@@ -47,4 +46,4 @@ class MLP(torch.nn.Module):
         """
         x = x.view(-1, self.input_size)
         x = self.linear1(x)
-        return F.log_softmax(self.linear2(x), dim=1)
+        return torch.nn.functional.log_softmax(self.linear2(x), dim=1)
