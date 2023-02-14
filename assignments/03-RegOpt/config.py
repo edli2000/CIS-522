@@ -12,14 +12,17 @@ from torchvision.transforms import (
 
 
 class CONFIG:
-    batch_size = 64
-    num_epochs = 4
+    batch_size = 32
+    num_epochs = 8
     initial_learning_rate = 0.001
-    initial_weight_decay = 0
+    initial_weight_decay = initial_learning_rate / num_epochs
 
     lrs_kwargs = {
         # You can pass arguments to the learning rate scheduler
         # constructor here.
+        "lr": initial_learning_rate,
+        "wd": initial_weight_decay,
+        "num_epochs": num_epochs,
     }
 
     optimizer_factory: Callable[
@@ -33,7 +36,7 @@ class CONFIG:
     transforms = Compose(
         [
             RandomHorizontalFlip(),
-            # RandomRotation(10),
+            RandomRotation(10),
             ToTensor(),
             Normalize((0.5, 0.5, 0.5), (0.25, 0.25, 0.25)),
         ]

@@ -8,7 +8,7 @@ class CustomLRScheduler(_LRScheduler):
     Class for custom learning rate scheduling
     """
 
-    def __init__(self, optimizer, gamma=0.1, last_epoch=-1):
+    def __init__(self, optimizer, last_epoch=-1, **kwargs):
         """
         Create a new scheduler.
 
@@ -21,7 +21,10 @@ class CustomLRScheduler(_LRScheduler):
             None
 
         """
-        self.gamma = gamma
+        self.lr = kwargs["lr"]
+        self.wd = kwargs["wd"]
+        self.num_epochs = kwargs["num_epochs"]
+
         super(CustomLRScheduler, self).__init__(optimizer, last_epoch)
 
     def get_lr(self) -> List[float]:
@@ -34,4 +37,5 @@ class CustomLRScheduler(_LRScheduler):
         Returns:
             None
         """
-        return [i * self.gamma**self.last_epoch for i in self.base_lrs]
+        return [self.lr / (1 + i * self.wd) for i in range(self.num_epochs)]
+        # return [i * self.gamma**(self.last_epoch // self.step_size) for i in self.base_lrs]
