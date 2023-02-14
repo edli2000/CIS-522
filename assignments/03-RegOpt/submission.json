@@ -2,8 +2,12 @@
     "assignment_name": "RegOpt",
     "contributors": [
         {
-            "name": "Change this to your name",
-            "pennkey": "MyPennKey"
+            "name": "Edward Li",
+            "pennkey": "edli2000"
+        },
+        {
+            "name": "Xincheng Zhu",
+            "pennkey": "81857300"
         }
     ],
     "sources": [
