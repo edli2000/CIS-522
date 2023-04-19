@@ -78,16 +78,16 @@ class Agent:
         self.action_space = action_space
         self.observation_space = observation_space
 
-        self.gamma = 0.99
+        self.gamma = 0.999
         self.lamb = 0.9
         self.entropy = 0.9
         self.lr = 1e-3
         self.train_epochs = 6
-        self.explore_epochs = 4
+        self.explore_epochs = 5
         self.batch_size = 64
-        self.value_func = 0.1
+        self.value_func = 0.001
         self.value_func_clip = 10.0
-        self.ppo_clip = 0.5
+        self.ppo_clip = 0.1
         self.hidden = 128
 
         self.n_obs = observation_space.shape[0]
