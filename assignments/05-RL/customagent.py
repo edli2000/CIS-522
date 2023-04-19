@@ -286,7 +286,7 @@ class Agent:
                         loss = (
                             policy_loss
                             + self.value_func * vf_loss
-                            + self.entropy * entropy_loss
+                            + self.generate_entropy() * entropy_loss
                         )
 
                         loss.backward()
