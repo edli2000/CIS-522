@@ -151,7 +151,7 @@ class Agent:
         Returns:
             None
         """
-        self.update_reward(reward)
+        self.update_reward(reward) 
         if truncated or terminated:
             self.episode_ctr += 1
             if self.episode_ctr % self.explore_epochs == 0:
