@@ -151,7 +151,7 @@ class Agent:
         Returns:
             None
         """
-        self.update_reward(reward) 
+        self.update_reward(reward)
         if truncated or terminated:
             self.episode_ctr += 1
             if self.episode_ctr % self.explore_epochs == 0:
@@ -190,8 +190,8 @@ class Agent:
                             else tuple(t.to(device=None) for t in stacked_actions)
                         )
                         values, log_probs, _ = self.prev_agent.score(states, actions)
-                        values = values.flatten()
                         log_probs = log_probs.flatten()
+                        values = values.flatten()
 
                         rewards = torch.tensor(
                             rewards, device=None, dtype=torch.float32
