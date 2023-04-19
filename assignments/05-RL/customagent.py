@@ -80,7 +80,7 @@ class Agent:
 
         self.gamma = 0.999
         self.lamb = 0.9
-        self.entropy = 0.9
+        # self.entropy = 0.9
         self.lr = 1e-3
         self.train_epochs = 6
         self.explore_epochs = 5
@@ -114,6 +114,9 @@ class Agent:
     def update_reward(self, reward):
         idx = self.episode_ctr % self.explore_epochs
         self.cache[idx][2].append(reward)
+
+    def generate_entropy(self):
+        return 1.0 * np.exp(-self.episode_ctr / 20)
 
     def act(self, observation: gym.spaces.Box) -> gym.spaces.Discrete:
         """
