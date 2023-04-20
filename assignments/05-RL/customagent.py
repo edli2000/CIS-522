@@ -1,70 +1,24 @@
 import gymnasium as gym
 import numpy as np
 import torch
-from torch import nn
-from contextlib import contextmanager
+import torch.nn as nn
+import torch.optim as optim
+from collections import deque
+import random
+from typing import List
 
 
-@contextmanager
-def evaluate(nnet):
-    """Switch from train to evaluate"""
-    is_training = nnet.training
-    try:
-        nnet.eval()
-        yield nnet
-    finally:
-        if is_training:
-            nnet.train()
+class DQNet(nn.Module):
+    def __init__(self, in_size, out_size):
+        super(DQNet, self).__init__()
+        self.fc1 = nn.Linear(in_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, out_size)
 
-
-class MLPAgent(nn.Module):
-    def __init__(self, num_features, num_actions, hidden=64):
-        """
-        A simple MLP backbone for a PPO agent,
-        where the input features are all numerical,
-        and the output is the choice within n actions.
-        """
-        super().__init__()
-        self.num_features = num_features
-        self.num_actions = num_actions
-        self.hidden = hidden
-
-        self.extractor_net = nn.Sequential(
-            nn.Linear(num_features, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-        )
-        self.actor_net = nn.Sequential(
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, num_actions),
-        )
-        self.critic_net = nn.Sequential(
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, 1),
-        )
-
-    def sample(self, state):
-        state = self.extractor_net(state)
-        logits = self.actor_net(state)
-        distr = torch.distributions.Categorical(logits=logits)
-        return distr.sample()
-
-    def score(self, state, action):
-        state = self.extractor_net(state)
-        logits = self.actor_net(state)
-        distr = torch.distributions.Categorical(logits=logits)
-        return (
-            self.critic_net(state).flatten(),
-            distr.log_prob(action.flatten()),
-            distr.entropy(),
-        )
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.fc3(x)
 
 
 class Agent:
@@ -73,50 +27,43 @@ class Agent:
     """
 
     def __init__(
-        self, action_space: gym.spaces.Discrete, observation_space: gym.spaces.Box
+        self,
+        action_space: gym.spaces.Discrete,
+        observation_space: gym.spaces.Box,
+        gamma: float = 0.99,
+        lr: float = 0.001,
+        eps_init: float = 1.0,
+        eps_final: float = 0.01,
+        eps_decay: float = 0.995,
+        batch_size: int = 4,
+        max_mem: int = 10000,
     ):
         self.action_space = action_space
         self.observation_space = observation_space
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.gamma = 0.999
-        self.lamb = 0.9
-        # self.entropy = 0.9
-        self.lr = 1e-3
-        self.train_epochs = 6
-        self.explore_epochs = 5
-        self.batch_size = 64
-        self.value_func = 0.001
-        self.value_func_clip = 10.0
-        self.ppo_clip = 0.1
-        self.hidden = 128
+        self.gamma = gamma
+        self.lr = lr
+        self.eps = eps_init
+        self.eps_final = eps_final
+        self.eps_decay = eps_decay
+        self.batch_size = batch_size
+        self.memory = deque(maxlen=max_mem)
 
-        self.n_obs = observation_space.shape[0]
-        self.n_actions = action_space.n
-        self.step_ctr = 0
-        self.episode_ctr = 0
-        self.cache = []
+        self.nnet = DQNet(self.observation_space.shape[0], self.action_space.n).to(
+            self.device
+        )
+        self.target_nnet = DQNet(
+            self.observation_space.shape[0], self.action_space.n
+        ).to(self.device)
+        self.target_nnet.load_state_dict(self.nnet.state_dict())
+        self.target_nnet.eval()
 
-        self.agent = MLPAgent(self.n_obs, self.n_actions, hidden=self.hidden)
-        self.prev_agent = MLPAgent(self.n_obs, self.n_actions, hidden=self.hidden)
-        self.optimizer = torch.optim.Adam(self.agent.parameters(), lr=self.lr)
-        for param in self.prev_agent.parameters():
-            param.requires_grad_(False)
-        self.reset_buff()
+        self.optimizer = optim.Adam(self.nnet.parameters(), lr=self.lr)
+        self.criterion = nn.MSELoss()
 
-    def reset_buff(self):
-        self.cache = [([], [], []) for _ in range(self.explore_epochs)]
-
-    def update_state(self, obs, action):
-        idx = self.episode_ctr % self.explore_epochs
-        self.cache[idx][0].append(obs)
-        self.cache[idx][1].append(torch.tensor(action))
-
-    def update_reward(self, reward):
-        idx = self.episode_ctr % self.explore_epochs
-        self.cache[idx][2].append(reward)
-
-    def generate_entropy(self):
-        return 1.0 * np.exp(-self.episode_ctr / 20)
+        self.last_obs = None
+        self.last_action = None
 
     def act(self, observation: gym.spaces.Box) -> gym.spaces.Discrete:
         """
@@ -127,11 +74,14 @@ class Agent:
         Returns:
             gym.spaces.Discrete: a sampling of actions for the agent
         """
-        obs = torch.tensor(np.array(observation), dtype=torch.float32)
-        with torch.no_grad(), evaluate(self.prev_agent):
-            action = self.prev_agent.sample(obs).item()
-        self.update_state(obs, action)
-        return action
+        if np.random.rand() < self.eps:
+            return self.action_space.sample()
+        else:
+            observation = torch.tensor([observation], dtype=torch.float32).to(
+                self.device
+            )
+            with torch.no_grad():
+                return int(torch.argmax(self.nnet(observation)).item())
 
     def learn(
         self,
@@ -151,146 +101,45 @@ class Agent:
         Returns:
             None
         """
-        self.update_reward(reward)
-        if truncated or terminated:
-            self.episode_ctr += 1
-            if self.episode_ctr % self.explore_epochs == 0:
-                sample = {
-                    "states": [],
-                    "actions": [],
-                    "rewards": [],
-                    "values": [],
-                    "log_probs": [],
-                    "adv": [],
-                    "returns": [],
-                }
+        if len(self.memory) < self.batch_size:
+            return
 
-                with torch.no_grad(), evaluate(self.prev_agent):
-                    self.prev_agent.to(device=None)
-                    for _, (states, actions, rewards) in enumerate(self.cache):
-                        states = states[: len(actions)]
-                        stacked_states = (
-                            torch.stack(states)
-                            if isinstance(states[0], torch.Tensor)
-                            else tuple(torch.stack(t) for t in zip(*states))
-                        )
-                        states = (
-                            stacked_states.to(device=None)
-                            if isinstance(stacked_states, torch.Tensor)
-                            else tuple(t.to(device=None) for t in stacked_states)
-                        )
-                        stacked_actions = (
-                            torch.stack(actions)
-                            if isinstance(actions[0], torch.Tensor)
-                            else tuple(torch.stack(t) for t in zip(*actions))
-                        )
-                        actions = (
-                            stacked_actions.to(device=None)
-                            if isinstance(stacked_actions, torch.Tensor)
-                            else tuple(t.to(device=None) for t in stacked_actions)
-                        )
-                        values, log_probs, _ = self.prev_agent.score(states, actions)
-                        log_probs = log_probs.flatten()
-                        values = values.flatten()
+        self.memory.append(
+            (
+                observation,
+                reward,
+                self.last_obs,
+                self.last_action,
+                terminated or truncated,
+            )
+        )
+        self.last_obs = observation
+        self.last_action = self.act(observation)
 
-                        rewards = torch.tensor(
-                            rewards, device=None, dtype=torch.float32
-                        )
-                        with torch.no_grad():
-                            old_device = rewards.device
-                            rewards = rewards.detach().clone().cpu()
-                            values = values.detach().clone().cpu()
-                            adv = torch.zeros(len(rewards), device="cpu")
-                            adv[-1] = rewards[-1] - values[-1]
-                            for idx in reversed(range(len(rewards) - 1)):
-                                delta = (
-                                    rewards[idx]
-                                    + self.gamma * values[idx + 1]
-                                    - values[idx]
-                                )
-                                adv[idx] = delta + self.gamma * self.lamb * adv[idx + 1]
-                            adv = adv.to(device=old_device)
+        if len(self.memory) < self.batch_size:
+            return
 
-                        returns = values + adv
-                        sample["states"].append(states)
-                        sample["actions"].append(actions)
-                        sample["rewards"].append(rewards)
-                        sample["values"].append(values)
-                        sample["log_probs"].append(log_probs)
-                        sample["adv"].append(adv)
-                        sample["returns"].append(returns)
+        sample = random.sample(self.memory, self.batch_size)
+        next_obs, rewards, obs, actions, dones = zip(*sample)
 
-                sample["states"] = (
-                    torch.cat(sample["states"])
-                    if isinstance(sample["states"][0], torch.Tensor)
-                    else tuple(torch.cat(t) for t in zip(*sample["states"]))
-                )
-                sample["actions"] = (
-                    torch.cat(sample["actions"])
-                    if isinstance(sample["actions"][0], torch.Tensor)
-                    else tuple(torch.cat(t) for t in zip(*sample["actions"]))
-                )
-                sample["rewards"] = torch.cat(sample["rewards"])
-                sample["values"] = torch.cat(sample["values"])
-                sample["log_probs"] = torch.cat(sample["log_probs"])
-                sample["adv"] = torch.cat(sample["adv"])
-                sample["returns"] = torch.cat(sample["returns"])
-                self.agent.to(device=None)
-                self.agent.train()
+        next_obs = torch.tensor(np.stack(next_obs), dtype=torch.float32).to(self.device)
+        rewards = (
+            torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(self.device)
+        )
+        obs = torch.tensor(np.stack(obs), dtype=torch.float32).to(self.device)
+        actions = torch.tensor(actions, dtype=torch.int64).unsqueeze(1).to(self.device)
+        dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1).to(self.device)
 
-                for _ in range(self.train_epochs):
-                    batch_indices = torch.split(
-                        torch.randperm(len(sample["rewards"]), device=None),
-                        split_size_or_sections=self.batch_size,
-                    )
-                    for batch_idx in batch_indices:
-                        batch_states = (
-                            sample["states"][batch_idx]
-                            if isinstance(sample["states"], torch.Tensor)
-                            else tuple(t[batch_idx] for t in sample["states"])
-                        )
-                        batch_actions = (
-                            sample["actions"][batch_idx]
-                            if isinstance(sample["actions"], torch.Tensor)
-                            else tuple(t[batch_idx] for t in sample["actions"])
-                        )
-                        batch_prev_log_probs = sample["log_probs"][batch_idx]
-                        batch_prev_adv = sample["adv"][batch_idx]
-                        batch_prev_values = sample["values"][batch_idx]
-                        batch_prev_returns = sample["returns"][batch_idx]
-                        (
-                            batch_new_values,
-                            batch_new_log_probs,
-                            batch_new_entropy,
-                        ) = self.agent.score(batch_states, batch_actions)
+        qvals = self.nnet(obs).gather(1, actions)
+        next_qvals = self.target_nnet(next_obs).detach().max(1)[0].unsqueeze(1)
+        tgt_qvals = rewards + (self.gamma * next_qvals * (1 - dones))
 
-                        clip_vals = batch_prev_values + (
-                            batch_new_values - batch_prev_values
-                        ).clamp(min=-self.value_func_clip, max=self.value_func_clip)
-                        vf_loss = (
-                            torch.maximum(
-                                (batch_new_values - batch_prev_returns) ** 2,
-                                (clip_vals - batch_prev_returns) ** 2,
-                            ).mean()
-                            * 0.5
-                        )
-                        ratio = torch.exp(batch_new_log_probs - batch_prev_log_probs)
-                        clip_ratio = ratio.clamp(
-                            min=1.0 - self.ppo_clip, max=1.0 + self.ppo_clip
-                        )
-                        policy_obj = torch.minimum(
-                            ratio * batch_prev_adv, clip_ratio * batch_prev_adv
-                        )
-                        policy_loss = -policy_obj.mean()
-                        entropy_loss = -batch_new_entropy.mean()
-                        loss = (
-                            policy_loss
-                            + self.value_func * vf_loss
-                            + self.generate_entropy() * entropy_loss
-                        )
+        loss = self.criterion(qvals, tgt_qvals)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-                        loss.backward()
-                        self.optimizer.step()
-                        self.optimizer.zero_grad()
-                self.reset_buff()
-                self.prev_agent.load_state_dict(self.agent.state_dict())
+        self.eps = max(self.eps_final, self.eps_decay * self.eps)
+
+        if terminated or truncated:
+            self.target_nnet.load_state_dict(self.nnet.state_dict())
