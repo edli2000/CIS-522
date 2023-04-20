@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 from collections import deque
 import random
-from typing import List
 
 
 class DQNet(nn.Module):
