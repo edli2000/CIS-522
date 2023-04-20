@@ -10,9 +10,9 @@ import random
 class DQNet(nn.Module):
     def __init__(self, in_size, out_size):
         super(DQNet, self).__init__()
-        self.fc1 = nn.Linear(in_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, out_size)
+        self.fc1 = nn.Linear(in_size, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, out_size)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
