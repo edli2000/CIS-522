@@ -65,18 +65,18 @@ class Agent:
         """
         next_obs = gym.spaces.Box
         if self.prev_action is not None:
+            prev_action_idx = int(self.prev_action)
             obs_idx = np.ravel_multi_index(
                 observation.astype(int), self.observation_space.shape
             )
-            prev_action_idx = int(self.prev_action)
             next_obs_idx = np.ravel_multi_index(
                 next_obs.astype(int), self.observation_space.shape
             )
 
             prev_qval = self.q_table[obs_idx, prev_action_idx]
             max_qval = np.max(self.q_table[next_obs_idx])
-            next_qval = (1 - self.lr) * prev_qval + self.lr * (
-                reward + self.gamma * max_qval
+            next_qval = (
+                self.lr * (reward + self.gamma * max_qval) + (1 - self.lr) * prev_qval
             )
             self.q_table[obs_idx, prev_action_idx] = next_qval
 
