@@ -18,9 +18,9 @@ class DQNet(nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         return self.fc3(x)
-    
-class ReplayBuffer:
 
+
+class ReplayBuffer:
     def __init__(self, mem_size):
         self.mem_size = mem_size
         self.buff = deque(maxlen=mem_size)
@@ -118,12 +118,9 @@ class Agent:
 
             prev_qval = self.q_table[obs_idx, prev_action_idx]
             max_qval = np.max(self.q_table[next_obs_idx])
-            next_qval = (
-                1 - self.lr
-            ) * prev_qval + self.lr * (
+            next_qval = (1 - self.lr) * prev_qval + self.lr * (
                 reward + self.gamma * max_qval
             )
             self.q_table[obs_idx, prev_action_idx] = next_qval
 
-            self.eps = max(self.min_eps,self.eps_decay * self.eps)
-
+            self.eps = max(self.min_eps, self.eps_decay * self.eps)
