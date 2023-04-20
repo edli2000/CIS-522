@@ -4,29 +4,6 @@ from collections import deque
 import random
 
 
-class ReplayBuffer:
-    def __init__(self, mem_size):
-        self.mem_size = mem_size
-        self.buff = deque(maxlen=mem_size)
-
-    def add(self, obs, action, reward, next_obs, done):
-        self.buff.append((obs, action, reward, next_obs, done))
-
-    def sample(self, batch_size):
-        batch = random.sample(self.buff, batch_size)
-        obs, actions, rewards, next_obs, dones = [], [], [], [], []
-        for state, action, reward, next_state, done in batch:
-            obs.append(state)
-            actions.append(action)
-            rewards.append(reward)
-            next_obs.append(next_state)
-            dones.append(done)
-        return obs, actions, rewards, next_obs, dones
-
-    def __len__(self):
-        return len(self.buff)
-
-
 class Agent:
     """
     Class for the agent being trained to play the RL game
@@ -51,7 +28,6 @@ class Agent:
         self.min_eps = min_eps
         self.eps = eps
         self.eps_decay = eps_decay
-        self.buffer = ReplayBuffer(mem_size)
         self.q_table = np.zeros((self.observation_space.shape[0], self.action_space.n))
         self.batch_size = batch_size
         self.prev_obs = None
