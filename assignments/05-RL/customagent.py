@@ -42,7 +42,7 @@ class Agent:
         eps: float = 1.0,
         eps_decay: float = 0.95,
         mem_size: int = 10000,
-        batch_size: int = 128,
+        batch_size: int = 64,
     ):
         self.action_space = action_space
         self.observation_space = observation_space
@@ -51,7 +51,7 @@ class Agent:
         self.min_eps = min_eps
         self.eps = eps
         self.eps_decay = eps_decay
-        self.replay_buffer = ReplayBuffer(mem_size)
+        self.buffer = ReplayBuffer(mem_size)
         self.q_table = np.zeros((self.observation_space.shape[0], self.action_space.n))
         self.batch_size = batch_size
         self.prev_obs = None
