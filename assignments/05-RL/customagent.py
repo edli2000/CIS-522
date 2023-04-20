@@ -42,7 +42,7 @@ class Agent:
         eps: float = 1.0,
         eps_decay: float = 0.95,
         mem_size: int = 10000,
-        batch_size: int = 64,
+        batch_size: int = 128,
     ):
         self.action_space = action_space
         self.observation_space = observation_space
