@@ -40,9 +40,9 @@ class Agent:
         gamma: float = 0.99,
         min_eps: float = 0.01,
         eps: float = 1.0,
-        eps_decay: float = 0.99,
+        eps_decay: float = 0.95,
         mem_size: int = 10000,
-        batch_size: int = 32,
+        batch_size: int = 64,
     ):
         self.action_space = action_space
         self.observation_space = observation_space
