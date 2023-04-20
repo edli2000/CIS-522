@@ -4,7 +4,7 @@ import numpy as np
 
 class Agent:
     """
-    Class for the agent being trained to play the RL game
+    Class for the agent being trained to play the RL game.
     """
 
     def __init__(
