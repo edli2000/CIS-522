@@ -6,19 +6,6 @@ from collections import deque
 import random
 
 
-class DQNet(nn.Module):
-    def __init__(self, in_size, out_size):
-        super(DQNet, self).__init__()
-        self.fc1 = nn.Linear(in_size, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, out_size)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
-
-
 class ReplayBuffer:
     def __init__(self, mem_size):
         self.mem_size = mem_size
